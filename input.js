@@ -14,6 +14,36 @@ const LEFT_CODE = 65;
 const UP_CODE = 87;
 const SPACE_CODE = 32;
 
+let mouse = {
+    x:0,
+    y:0,
+    isDown:false,
+    wentDown:false,
+    wentUp:false,
+    worldX:0,
+    worldY:0
+}
+
+window.onmousemove = function mousemove(event) {
+    let rect = canvas.getBoundingClientRect();
+    mouse.x = (event.clientX - rect.left)*canvas.width/rect.width;
+    mouse.y = (event.clientY - rect.top)*canvas.height/rect.height;
+    
+}
+
+window.onmousedown = function mousedown(event) {
+    handleKeyDown(MouseKey, true, true);
+}
+
+window.onmouseup = function mousedown(event) {
+    handleKeyUp(MouseKey, true, true);
+}
+
+function clearMouse() {
+    mouse.wentUp = false;
+    mouse.wentDown = false;
+}
+
 let downKey = addKey();
 let leftKey = addKey();
 let rightKey = addKey();
@@ -35,6 +65,7 @@ function clearKeys() {
     clearKey(leftKey);
     clearKey(rightKey);
     clearKey(spaceKey);
+    clearMouse;
 }
 
 function handleKeyDown(key, eventKeyCode, keyCode) {
