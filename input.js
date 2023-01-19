@@ -13,6 +13,8 @@ const DOWN_CODE = 83;
 const LEFT_CODE = 65;
 const UP_CODE = 87;
 const SPACE_CODE = 32;
+const PLUS_CODE = 107;
+const MINUS_CODE = 109;
 
 let mouse = {
     x:0,
@@ -32,11 +34,11 @@ window.onmousemove = function mousemove(event) {
 }
 
 window.onmousedown = function mousedown(event) {
-    handleKeyDown(MouseKey, true, true);
+    handleKeyDown(mouse, true, true);
 }
 
 window.onmouseup = function mousedown(event) {
-    handleKeyUp(MouseKey, true, true);
+    handleKeyUp(mouse, true, true);
 }
 
 function clearMouse() {
@@ -49,6 +51,8 @@ let leftKey = addKey();
 let rightKey = addKey();
 let upKey = addKey();
 let spaceKey = addKey();
+let plusKey = addKey();
+let minusKey = addKey();
 
 
 function clearKey(k) {
@@ -65,6 +69,8 @@ function clearKeys() {
     clearKey(leftKey);
     clearKey(rightKey);
     clearKey(spaceKey);
+    clearKey(plusKey);
+    clearKey(minusKey);
     clearMouse;
 }
 
@@ -93,6 +99,8 @@ window.onkeydown = function keydown(event) {
     handleKeyDown(upKey, event.keyCode, UP_CODE);
     handleKeyDown(downKey, event.keyCode, DOWN_CODE);
     handleKeyDown(spaceKey, event.keyCode, SPACE_CODE);
+    handleKeyDown(plusKey, event.keyCode, PLUS_CODE);
+    handleKeyDown(minusKey, event.keyCode, MINUS_CODE);
 }
 
 window.onkeyup = function keyup(event) {
@@ -101,5 +109,7 @@ window.onkeyup = function keyup(event) {
     handleKeyUp(upKey, event.keyCode, UP_CODE);
     handleKeyUp(downKey, event.keyCode, DOWN_CODE);
     handleKeyUp(spaceKey, event.keyCode, SPACE_CODE);
+    handleKeyUp(plusKey, event.keyCode, PLUS_CODE);
+    handleKeyUp(minusKey, event.keyCode, MINUS_CODE);
 }
 
