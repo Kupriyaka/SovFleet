@@ -6,6 +6,8 @@ let ctx = canvas.getContext('2d'); //стх - чем мы рисуем
 
 let SizeMultiplier = 0.25;
 
+let drawTestMode = false;
+
 const GAME_OBJECT_PLAYER = 0;
 const GAME_OBJECT_ENEMY = 1;
 const GAME_OBJECT_BULLET = 2;
@@ -32,7 +34,7 @@ function addtimer() {
 }
 
 function addPoint(Points, x, y){
-    let point = new Point(x,y);
+    let point = new V2(x,y);
     Points.push(point);
 }
 
@@ -42,69 +44,69 @@ function updateTimers() {
     }
 }
 
-class Point {
-    constructor(x, y)
+
+
+function IsPolygonsIntersecting(pointsInput1, pointsInput2, pos1, pos2, angle1, angle2, tempcolor) {
+    let criticalPoints = []
+    let collisionArea = []
+    
+    if (angle1-angle2!=0) 
     {
-        this.x=x;
-        this.y=y;
+        let foo=0
     }
-}
 
+    let points1 = rotatePoints(pointsInput1, angle1);
+    let points2 = rotatePoints(pointsInput2, angle2);
+    for (let pointIndex = 0; pointIndex < points1.length; pointIndex++) {
+        let point1 = points1[pointIndex];
+        let point2 = points1[(pointIndex + 1) % points1.length];
 
-function IsPolygonsIntersecting(arrayOfPoints1, arrayOfPoints2, pos, otherPos)
-{
-    arrayOfPoints1.sort((a,b)=>{
-        return angBetwPoints(0, 0, b.x, b.y)-angBetwPoints(0,0, a.x, a.y)
-    });
-    arrayOfPoints2.sort((a,b)=>{
-        return angBetwPoints(0, 0, b.x, b.y)-angBetwPoints(0,0, a.x, a.y)
-    });
-    let result = true;
-    let collisionForm = [];
-    for (let i1 = 0; i1 < arrayOfPoints1.length; i1++)
-    {
-        let i2 = (i1 + 1) % arrayOfPoints1.length;
-
-        //Берём сторону!
-        let curEdge = new Point(arrayOfPoints1[i2].x-arrayOfPoints1[i1].x, arrayOfPoints1[i2].y-arrayOfPoints1[i1].y);
-
-        //Делаем к ней перпендикуляр!
-
-        let normalX = rotateVector(curEdge.x, curEdge.y, -Math.PI/2).x;
-        let normalY = rotateVector(curEdge.x, curEdge.y, -Math.PI/2).y;
-        let normal = new Point(normalX, normalY);
-
-        //Сравниваем проекции векторов 2-го на перпендикуляр 1-го!
-        let dotProdMin=Infinity;
-        let minVec=new Point;
-        for (let k2 = 0; k2 < arrayOfPoints2.length; k2++)
-        {
-            if (dotProd(arrayOfPoints2[k2],normal)<dotProdMin){
-                dotProdMin=dotProd(arrayOfPoints2[k2],normal);
-                minVec=arrayOfPoints2[k2];
+        let guideVec = new V2(point2.x - point1.x, point2.y - point1.y);
+        let normal = unit(rotateVector(guideVec, -Math.PI / 2))
+        let min = Infinity
+        let minNum
+        for (let index = 0; index < points2.length; index++) {
+            let point = points2[index]
+            let dotProd = dot(normal, point)
+            if (dotProd < min) {
+                min = dotProd
+                minNum = index
             }
         }
 
-        //Берём самую маленькую проекцию и поворачиваем на 180!
-        minVec=rotateVector(minVec.x, minVec.y, -Math.PI);
+        criticalPoints.push(minNum)
+        criticalPoints.push(minNum)
+    }
 
-        //Добавляем точки самой большой проекции вектора 2-го к крайним точкам этой стороны
-        addPoint(collisionForm, arrayOfPoints1[i1].x+minVec.x, arrayOfPoints1[i1].y+minVec.y);
-        addPoint(collisionForm, arrayOfPoints1[i2].x+minVec.x, arrayOfPoints1[i2].y+minVec.y);
+    collisionArea = []
+    //startDrawing(criticalPoints[0].x, criticalPoints[0].y)
+    //connectPoints(criticalPoints)
+    for (let pointIndex = 1; pointIndex <points1.length+1; pointIndex++) {
+        let realIndex = pointIndex % points1.length
+        let point1 = criticalPoints[pointIndex * 2 - 1]
+        let point2 = criticalPoints[pointIndex * 2 % criticalPoints.length]
+
+        let betweenIndex = point2;
+        while (betweenIndex !== (point1 - 1) % points2.length) {
+            collisionArea.push(new V2(points1[realIndex].x - points2[betweenIndex].x, points1[realIndex].y - points2[betweenIndex].y))
+            betweenIndex--
+            betweenIndex = betweenIndex % points2.length
+        }
 
     }
-    collisionForm.sort((a,b)=>{
-        return angBetwPoints(0, 0, b.x, b.y)-angBetwPoints(0,0, a.x, a.y)
-    });
-    ctx.beginPath();
-    ctx.moveTo(collisionForm[0].x+pos.x,collisionForm[0].y+pos.y);
-    for (let i1 = 1; i1 < collisionForm.length; i1++)
-    {
-        ctx.lineTo(collisionForm[i1].x+pos.x,collisionForm[i1].y*2+pos.y);
+    //ctx.closePath()
+
+    collisionArea = dislocatePoints(collisionArea, pos1)
+    startDrawing(collisionArea[0].x, collisionArea[0].y)
+    connectPoints(collisionArea)
+    ctx.fillStyle = 'purple'
+    ctx.fill()
+    if (ctx.isPointInPath(pos2.x, pos2.y)) {
+        tempcolor = 'white'
+    } else {
+        tempcolor = 'red'
     }
-    ctx.fillStyle = "yellow";
-    ctx.fill();
-    return result;
+    ctx.closePath()
 }
 
 
@@ -140,6 +142,7 @@ function addGameObject(type) {
         height: 10,
         width: 10,
         color: "black",
+        tempcolor: "white",
         collisionRadius: 7.5,
         friction: 0.96,
         exists: true,
@@ -332,26 +335,6 @@ function getRandomInt(start, end) {
 
 }
 
-function rotateVector(x, y, angle) {
-
-    let sin = Math.sin(angle);
-    let cos = Math.cos(angle);
-    let resultX = x * cos - y * sin;
-    let resultY = -y * cos - x * sin;
-    return {
-        x: resultX,
-        y: resultY,
-    };
-
-    /*
-    let resultX = x*Math.cos(angle);
-    let resultY = -y*Math.sin(angle);
-    return {
-        x: resultX,
-        y: resultY
-    }*/
-}
-
 function drawCircle(x, y, radius, color, width, filling, filColor) {
 
     ctx.save();
@@ -395,13 +378,13 @@ function bulletSpawn(gameObject, lifetime = 300, mainspeed = 150) {
     let bullet = addGameObject(GAME_OBJECT_BULLET)
     bullet.width = 255;
     bullet.height = 55;
-    let turretAddition = rotateVector(gameObject.turretWidth, 0, gameObject.turretAngle);
+    let turretAddition = rotateVector(new V2(gameObject.turretWidth, 0), gameObject.turretAngle);
     bullet.x = gameObject.x + turretAddition.x * 1.5;
     bullet.y = gameObject.y + turretAddition.y * 1.5;
     bullet.angle = gameObject.turretAngle;
     bullet.friction = 0.9975;
     bullet.accel = 0.5;
-    let speed = rotateVector(mainspeed, 0, gameObject.turretAngle);
+    let speed = rotateVector(new V2(mainspeed, 0), gameObject.turretAngle);
     bullet.speedX = speed.x;
     bullet.speedY = speed.y;
     timers[bullet.lifetime] = lifetime;
@@ -505,13 +488,13 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
         if (upKey.isDown) {
 
-            let speedVector = rotateVector(gameObject.accel, 0, gameObject.angle)
+            let speedVector = rotateVector(new V2(gameObject.accel, 0), gameObject.angle)
             gameObject.speedX += speedVector.x;
             gameObject.speedY += speedVector.y;
         };
 
         if (downKey.isDown) {
-            let speedVector = rotateVector(gameObject.accel, 0, gameObject.angle)
+            let speedVector = rotateVector(new V2(gameObject.accel, 0), gameObject.angle)
             gameObject.speedX += -speedVector.x;
             gameObject.speedY += -speedVector.y;
         };
@@ -598,13 +581,13 @@ function updateGameObject(gameObject, gameObjectsIndex) {
             } break;
 
             case AI_STATE_MOVE_FORWARD: {
-                let speedVector = rotateVector(gameObject.accel, 0, gameObject.angle)
+                let speedVector = rotateVector(new V2(gameObject.accel, 0), gameObject.angle)
                 gameObject.speedX += speedVector.x;
                 gameObject.speedY += speedVector.y;
             } break;
 
             case AI_STATE_MOVE_BACKWARD: {
-                let speedVector = rotateVector(gameObject.accel, 0, gameObject.angle)
+                let speedVector = rotateVector(new V2(gameObject.accel, 0), gameObject.angle)
                 gameObject.speedX -= speedVector.x;
                 gameObject.speedY -= speedVector.y;
 
@@ -650,16 +633,16 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
 
     //
-    if (gameObject.main_sprite) {
+    if (gameObject.main_sprite && !drawTestMode) {
         drawSprite(gameObject.x, gameObject.y, gameObject.angle, gameObject.main_sprite, gameObject.width, gameObject.height)
     }
     else {
-    drawRect(gameObject.x, gameObject.y, gameObject.width, gameObject.height, gameObject.angle, gameObject.color)
+    drawRect(gameObject.x, gameObject.y, gameObject.width, gameObject.height, gameObject.angle, gameObject.tempcolor)
     }
     //ctx.drawImage(imgT72body, gameObject.x, gameObject.y, gameObject.width, gameObject.height)
 
 
-    let turretVector = rotateVector(gameObject.turretWidth / 2, 0, gameObject.turretAngle);
+    let turretVector = rotateVector(new V2(gameObject.turretWidth / 2, 0), gameObject.turretAngle);
     if (gameObject.turret_sprite) {
         drawSprite(gameObject.x + turretVector.x, gameObject.y + turretVector.y, gameObject.turretAngle, gameObject.turret_sprite, gameObject.width*1.2, gameObject.height)
     }   
@@ -697,39 +680,39 @@ function updateGameObject(gameObject, gameObjectsIndex) {
                 let points1 = [];
                 {
                     //заполняем точками точки толкача
-                    let xo=gameObject.width/2*Math.cos(gameObject.angle);
-                    let yo=gameObject.height/2*Math.sin(gameObject.angle);
+                    let xo=gameObject.width/2;
+                    let yo=gameObject.height/2;
                     addPoint(points1, xo, yo);
-                    xo=-gameObject.width/2*Math.cos(gameObject.angle);
-                    yo=gameObject.height/2*Math.sin(gameObject.angle);
+                    xo=-gameObject.width/2;
+                    yo=gameObject.height/2;
                     addPoint(points1, xo, yo);
-                    xo=-gameObject.width/2*Math.cos(gameObject.angle);
-                    yo=-gameObject.height/2*Math.sin(gameObject.angle);
+                    xo=-gameObject.width/2;
+                    yo=-gameObject.height/2;
                     addPoint(points1, xo, yo);
-                    xo=gameObject.width/2*Math.cos(gameObject.angle);
-                    yo=-gameObject.height/2*Math.sin(gameObject.angle);
+                    xo=gameObject.width/2;
+                    yo=-gameObject.height/2;
                     addPoint(points1, xo, yo);
                 }
 
                 let points2 = [];
                 {
                     //заполняем точками точки толкуемого
-                    let xo=other.width/2*Math.cos(other.angle);
-                    let yo=other.height/2*Math.sin(other.angle);
+                    let xo=other.width/2;
+                    let yo=other.height/2;
                     addPoint(points2, xo, yo);
-                    xo=-other.width/2*Math.cos(other.angle);
-                    yo=other.height/2*Math.sin(other.angle);
+                    xo=-other.width/2;
+                    yo=other.height/2;
                     addPoint(points2, xo, yo);
-                    xo=-other.width/2*Math.cos(other.angle);
-                    yo=-other.height/2*Math.sin(other.angle);
+                    xo=-other.width/2;
+                    yo=-other.height/2;
                     addPoint(points2, xo, yo);
-                    xo=other.width/2*Math.cos(other.angle);
-                    yo=-other.height/2*Math.sin(other.angle);
+                    xo=other.width/2;
+                    yo=-other.height/2;
                     addPoint(points2, xo, yo);
                 }
                 
                 
-                if (IsPolygonsIntersecting(points1, points2, pos, otherPos))
+                if (IsPolygonsIntersecting(points1, points2, pos, otherPos, gameObject.angle, other.angle, gameObject.tempcolor))
                 {
                     //gameObject.x=gameObject.x+other.width;
                 }
