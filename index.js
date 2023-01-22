@@ -4,15 +4,26 @@ let canvas = document.getElementById("canvas"); // канвас - то, на ч�
 let ctx = canvas.getContext('2d'); //стх - чем мы рисуем
 
 
-let SizeMultiplier = 0.25;
+let SizeMultiplier = 1;
+let mainGame={
+    gameState: 0,
+    allStop: false,
+    started: false,
+}
 
 let drawTestMode = false;
+
+const GAME_STATE_MENU = 0;
+const GAME_STATE_PLAY = 1;
 
 const GAME_OBJECT_PLAYER = 0;
 const GAME_OBJECT_ENEMY = 1;
 const GAME_OBJECT_BULLET = 2;
 const GAME_OBJECT_OBSTACLE = 3;
 const GAME_OBJECT_PRESSABLE = 4;
+
+const BUTTON_PRESSED = 1;
+const BUTTON_RELEASED = 2;
 
 let gameObjects = [];
 
@@ -44,17 +55,52 @@ function updateTimers() {
     }
 }
 
+function drawMenuButton(label, x, y, menuButtonSize, condition, alternativeChose, labelUnactive) {
+    let button_pressed = 0
+    let drawColor=menuButtonSize.color
+    let drawFontColor=menuButtonSize.fontcolor
+    if (-canvas.width/2+mouse.x>x-menuButtonSize.width*SizeMultiplier/2 && -canvas.width/2+mouse.x<x+menuButtonSize.width*SizeMultiplier/2 
+    && -canvas.height/2+mouse.y>y*SizeMultiplier-menuButtonSize.height*SizeMultiplier/2 && -canvas.height/2+mouse.y<y*SizeMultiplier+menuButtonSize.height*SizeMultiplier/2 && (condition || alternativeChose)) 
+    {
+        drawColor = menuButtonSize.color2;
+        drawFontColor = menuButtonSize.fontcolor2;
+        if (mouse.isDown) {
+            button_pressed = BUTTON_PRESSED;
+        }
+        else if (mouse.wentUp) {
+            return true;
+        }
+      
+    if (button_pressed===BUTTON_PRESSED) {
+        drawColor = menuButtonSize.color3;
+        drawFontColor = menuButtonSize.fontcolor3;
+        if (mouse.wentUp) {
+            return true
+        }
+    }
+    }
+    if (!condition)
+    {
+        label=alternativeChose
+    }
+    if (condition || alternativeChose) 
+    {
+        drawRect(camera.x+x, camera.y+y, menuButtonSize.width, menuButtonSize.height, 0, drawColor);
+        drawText(camera.x+x, camera.y+y, label, 0, menuButtonSize.font, 'center', drawFontColor);
+    }
+    else 
+    {
+        drawRect(camera.x+x, camera.y+y, menuButtonSize.width, menuButtonSize.height, 0, menuButtonSize.colorUnactive);
+        drawText(camera.x+x, camera.y+y, labelUnactive, 0, menuButtonSize.fontUnactive, 'center', menuButtonSize.fontUnactive);
+    }
+}
 
+function IsPolygonsIntersecting(pointsInput1, pointsInput2, pos1, pos2, angle1, angle2) {
 
-function IsPolygonsIntersecting(pointsInput1, pointsInput2, pos1, pos2, angle1, angle2, tempcolor) {
+    //получение области столкновения
+
     let criticalPoints = []
     let collisionArea = []
-    
-    if (angle1-angle2!=0) 
-    {
-        let foo=0
-    }
-
     let points1 = rotatePoints(pointsInput1, angle1);
     let points2 = rotatePoints(pointsInput2, angle2);
     for (let pointIndex = 0; pointIndex < points1.length; pointIndex++) {
@@ -79,42 +125,63 @@ function IsPolygonsIntersecting(pointsInput1, pointsInput2, pos1, pos2, angle1, 
     }
 
     collisionArea = []
-    //startDrawing(criticalPoints[0].x, criticalPoints[0].y)
-    //connectPoints(criticalPoints)
-    for (let pointIndex = 1; pointIndex <points1.length+1; pointIndex++) {
+    for (let pointIndex = 1; pointIndex < points1.length + 1; pointIndex++) {
         let realIndex = pointIndex % points1.length
         let point1 = criticalPoints[pointIndex * 2 - 1]
         let point2 = criticalPoints[pointIndex * 2 % criticalPoints.length]
 
-        let betweenIndex = point2;
-        while (betweenIndex !== (point1 - 1) % points2.length) {
+        let betweenIndex = point1;
+        while (betweenIndex !== (point2 + 1) % points2.length) {
             collisionArea.push(new V2(points1[realIndex].x - points2[betweenIndex].x, points1[realIndex].y - points2[betweenIndex].y))
-            betweenIndex--
+            betweenIndex++
             betweenIndex = betweenIndex % points2.length
         }
 
     }
-    //ctx.closePath()
 
-    collisionArea = dislocatePoints(collisionArea, pos1)
+    
+
+    //прорисовка области столкновения
+    
+    if (drawTestMode) {
+    ctx.save();
+    
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(SizeMultiplier, SizeMultiplier);
+    ctx.translate(-camera.x, -camera.y);
+    ctx.translate(pos1.x, pos1.y);
+
     startDrawing(collisionArea[0].x, collisionArea[0].y)
     connectPoints(collisionArea)
-    ctx.fillStyle = 'purple'
-    ctx.fill()
-    if (ctx.isPointInPath(pos2.x, pos2.y)) {
-        tempcolor = 'white'
-    } else {
-        tempcolor = 'red'
-    }
+    fillDrawing('purple')
     ctx.closePath()
+    ctx.restore()
+    }
+
+    //проверка на попадание в область столкновения
+    startDrawing(collisionArea[0].x, collisionArea[0].y)
+    connectPoints(collisionArea)
+    if (ctx.isPointInPath(pos2.x-pos1.x, pos2.y-pos1.y)) {
+        ctx.closePath()
+        return true;
+    }
+    else {
+        ctx.closePath()
+        return false;
+    }
+    
 }
 
 
 function drawRect(x, y, width, height, angle, color) {
 
     ctx.save();
+    
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(SizeMultiplier, SizeMultiplier);
+    ctx.translate(-camera.x, -camera.y);
     ctx.translate(x, y);
-    ctx.rotate(-angle);
+    ctx.rotate(angle);
     
     ctx.fillStyle = color;
     ctx.fillRect(-width / 2, -height / 2, width, height);
@@ -211,16 +278,15 @@ player.main_sprite = imgT72body;
 player.turret_sprite = imgT72turret;
 }
 
-let button = addGameObject(GAME_OBJECT_PRESSABLE)
-button.x = 100;
-button.y = 100;
-button.angle = 0;
-button.height = 173;
-button.width = 330;
-button.color = "green";
-button.cooldown = 0;
-button.cooldownConst = 35;
-button.collisionRadius = 0;
+function makemenu() {
+    let bChangeMode = addGameObject(GAME_OBJECT_PRESSABLE)
+    bChangeMode.x = 100;
+    bChangeMode.y = 100;
+    bChangeMode.angle = 0;
+    bChangeMode.height = 173;
+    bChangeMode.width = 330;
+    bChangeMode.color = "green";
+}
 
 function makeEnemy1() {
 let enemy1 = addGameObject(GAME_OBJECT_ENEMY)
@@ -297,8 +363,12 @@ let camera = {
 
 function drawSprite(x, y, angle, sprite, width, height) {
     ctx.save();
+    
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(SizeMultiplier, SizeMultiplier);
+    ctx.translate(-camera.x, -camera.y);
     ctx.translate(x, y);
-    ctx.rotate(-angle);
+    ctx.rotate(angle);
         
     /*ctx.fillStyle = color;
     ctx.fillRect(-width / 2, -height / 2, width, height);*/
@@ -321,7 +391,7 @@ function angBetwPoints(x1, y1, x2, y2) {
 
     let length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     let result = (Math.acos((x2 - x1) / length));
-    if (y2 > y1) {
+    if (y1 > y2) {
         result = -result;
     }
     return result;
@@ -338,6 +408,10 @@ function getRandomInt(start, end) {
 function drawCircle(x, y, radius, color, width, filling, filColor) {
 
     ctx.save();
+    
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(SizeMultiplier, SizeMultiplier);
+    ctx.translate(-camera.x, -camera.y);
     ctx.translate(x, y);
     ctx.strokeStyle = color
     ctx.lineWidth = width;
@@ -393,9 +467,12 @@ function bulletSpawn(gameObject, lifetime = 300, mainspeed = 150) {
 
 function drawText(x,y,text,angle,font,align,color) {
     ctx.save();
-
-    ctx.translate(x,y);
-    ctx.rotate(-angle);
+    
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(SizeMultiplier, SizeMultiplier);
+    ctx.translate(-camera.x, -camera.y);
+    ctx.translate(x, y);
+    ctx.rotate(angle);
 
     ctx.font = font;
 
@@ -468,10 +545,10 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
         if (rightKey.isDown) {
             if (!downKey.isDown) {
-                gameObject.angle -= gameObject.rotateSpeed;
+                gameObject.angle += gameObject.rotateSpeed;
             }
             else {
-                gameObject.angle += gameObject.rotateSpeed;
+                gameObject.angle -= gameObject.rotateSpeed;
             }
         };
 
@@ -479,10 +556,10 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
         if (leftKey.isDown) {
             if (!downKey.isDown) {
-                gameObject.angle += gameObject.rotateSpeed;
+                gameObject.angle -= gameObject.rotateSpeed;
             }
             else {
-                gameObject.angle -= gameObject.rotateSpeed;
+                gameObject.angle += gameObject.rotateSpeed;
             }
         };
 
@@ -506,7 +583,6 @@ function updateGameObject(gameObject, gameObjectsIndex) {
         {
             let NewDotProd = 0;
             let dotProd = (Math.cos(gameObject.turretAngle+Math.PI/2)*Math.cos(gmObjAngle)+Math.sin(gameObject.turretAngle+Math.PI/2)*Math.sin(gmObjAngle));
-            let smallAngle = Math.abs(gameObject.turretAngle)-Math.abs(gmObjAngle);
             if (dotProd<0)
             {
                 gameObject.turretAngle-= gameObject.turretRotateSpeed;
@@ -554,19 +630,19 @@ function updateGameObject(gameObject, gameObjectsIndex) {
             } break;
 
             case AI_STATE_ROTATE_LEFT: {
-                gameObject.angle += gameObject.rotateSpeed;
-            } break;
-
-            case AI_STATE_ROTATE_RIGHT: {
                 gameObject.angle -= gameObject.rotateSpeed;
             } break;
 
+            case AI_STATE_ROTATE_RIGHT: {
+                gameObject.angle += gameObject.rotateSpeed;
+            } break;
+
             case AI_STATE_TURRET_ROTATE_LEFT: {
-                gameObject.turretAngle += gameObject.turretRotateSpeed;
+                gameObject.turretAngle -= gameObject.turretRotateSpeed;
             } break;
 
             case AI_STATE_TURRET_ROTATE_RIGHT: {
-                gameObject.turretAngle -= gameObject.turretRotateSpeed;
+                gameObject.turretAngle += gameObject.turretRotateSpeed;
             } break;
 
             case AI_STATE_SHOOT: {
@@ -596,7 +672,12 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
         }
         if (timers[gameObject.aiTimer] <= 0) {
-            gameObject.aiState = getRandomInt(AI_STATE_IDLE, AI_STATE_TURRET_ROTATE_RIGHT);
+            if (mainGame.allStop) {
+                gameObject.aiState=AI_STATE_IDLE
+            }
+            else {
+                gameObject.aiState = getRandomInt(AI_STATE_IDLE, AI_STATE_TURRET_ROTATE_RIGHT);
+            }
             timers[gameObject.aiTimer] = 60;
             console.log(gameObject.aiState)
         };
@@ -631,28 +712,7 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
     }
 
-
-    //
-    if (gameObject.main_sprite && !drawTestMode) {
-        drawSprite(gameObject.x, gameObject.y, gameObject.angle, gameObject.main_sprite, gameObject.width, gameObject.height)
-    }
-    else {
-    drawRect(gameObject.x, gameObject.y, gameObject.width, gameObject.height, gameObject.angle, gameObject.tempcolor)
-    }
-    //ctx.drawImage(imgT72body, gameObject.x, gameObject.y, gameObject.width, gameObject.height)
-
-
     let turretVector = rotateVector(new V2(gameObject.turretWidth / 2, 0), gameObject.turretAngle);
-    if (gameObject.turret_sprite) {
-        drawSprite(gameObject.x + turretVector.x, gameObject.y + turretVector.y, gameObject.turretAngle, gameObject.turret_sprite, gameObject.width*1.2, gameObject.height)
-    }   
-    else {
-    drawRect(gameObject.x + turretVector.x, gameObject.y + turretVector.y, gameObject.turretWidth, gameObject.turretHeight, gameObject.turretAngle, gameObject.color);
-    drawCircle(gameObject.x, gameObject.y, gameObject.turretRadius, 'black', 5, true, gameObject.color)
-    }
-    drawCircle(gameObject.x, gameObject.y, gameObject.collisionRadius, 'red', 5, false, 'red')
-
-    //drawTurret(gameObject.x, gameObject.y, gameObject.turretWidth, gameObject.turretHeight, gameObject.turretRadius, gameObject.turretAngle, gameObject.color);
 
 
 
@@ -712,9 +772,13 @@ function updateGameObject(gameObject, gameObjectsIndex) {
                 }
                 
                 
-                if (IsPolygonsIntersecting(points1, points2, pos, otherPos, gameObject.angle, other.angle, gameObject.tempcolor))
+                if (IsPolygonsIntersecting(points1, points2, pos, otherPos, gameObject.angle, other.angle))
                 {
-                    //gameObject.x=gameObject.x+other.width;
+                    gameObject.tempcolor='red';
+                }
+                else
+                {
+                    gameObject.tempcolor='white';
                 }
 
                     /*
@@ -761,69 +825,110 @@ function updateGameObject(gameObject, gameObjectsIndex) {
         }
     }
 
+    
+    if (gameObject.main_sprite && !drawTestMode) {
+        drawSprite(gameObject.x, gameObject.y, gameObject.angle, gameObject.main_sprite, gameObject.width, gameObject.height)
+    }
+    else {
+    drawRect(gameObject.x, gameObject.y, gameObject.width, gameObject.height, gameObject.angle, gameObject.tempcolor)
+    }
+
+    if (gameObject.turret_sprite) {
+        drawSprite(gameObject.x + turretVector.x, gameObject.y + turretVector.y, gameObject.turretAngle, gameObject.turret_sprite, gameObject.width*1.2, gameObject.height)
+    }   
+    else {
+    drawRect(gameObject.x + turretVector.x, gameObject.y + turretVector.y, gameObject.turretWidth, gameObject.turretHeight, gameObject.turretAngle, gameObject.color);
+    drawCircle(gameObject.x, gameObject.y, gameObject.turretRadius, 'black', 5, true, gameObject.color)
+    }
+
+    if (drawTestMode) {
+    drawCircle(gameObject.x, gameObject.y, gameObject.collisionRadius, 'red', 5, false, 'red')
+
+    let textsize = 'bold ' + canvas.width/SizeMultiplier/50 + 'px Arial';
+    drawText(gameObject.x+100, gameObject.y+100, "x="+Math.round(gameObject.x), 0, textsize, "left", "black")
+    drawText(gameObject.x+100, gameObject.y-100, "y="+Math.round(gameObject.y), 0, textsize, "left", "black")
+    }
+
     gameObject.x += gameObject.speedX;
     gameObject.y += gameObject.speedY;
 }
 
 function loop() {
 
-    //sound_mission1.play();
-    priblijeniy_otdaleniy();
-
-    mouse.worldX = (mouse.x - canvas.width /2  )/SizeMultiplier  + camera.x;
-    mouse.worldY = (mouse.y - canvas.height / 2)/SizeMultiplier  + camera.y;
-
-     //КАМЕРАААА!
-
     
-    ctx.save();
     
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(SizeMultiplier, SizeMultiplier);
-    ctx.translate(-camera.x, -camera.y);
-    
-    drawRect(camera.x, camera.y, canvas.width/SizeMultiplier, canvas.height/SizeMultiplier, 0, 'grey');
-
-    let grassWidth = canvas.width;
-    let grassHeight = canvas.height;
-
-    let minX = Math.floor((camera.x-canvas.width/2/SizeMultiplier)/ grassWidth);
-    let minY = Math.floor((camera.y-canvas.height/2/SizeMultiplier)/ grassHeight);
-    let maxX = Math.ceil((camera.x+canvas.width/2/SizeMultiplier) / grassWidth);
-    let maxY = Math.ceil((camera.y+canvas.height/2/SizeMultiplier) / grassHeight);
-    /*
-    for (let bgTileX = minX; bgTileX <= maxX; bgTileX++) {
-        for (let bgTileY = minY; bgTileY <= maxY; bgTileY++) {
-            ctx.drawImage(
-                imgGrass, 
-                - grassWidth / 2 + bgTileX * grassWidth, 
-                - grassHeight / 2 + bgTileY * grassHeight, 
-                grassWidth, grassHeight);
-
-        }
-    }
-    */
 
     //ctx.drawImage(imgGrass, - imgGrass.width / 2 + camera.width / 2, - imgGrass.height / 2 + camera.height / 2)
 
     //счётчик приближения
-    let textsize = 'bold ' + canvas.width/SizeMultiplier/50 + 'px Arial';
-    drawText(camera.x-(canvas.width+50000)/SizeMultiplier/50, camera.y-(canvas.width+50000)/SizeMultiplier/50, "Zoom = ", 0, textsize);
-    drawText(camera.x-(canvas.width+40000)/SizeMultiplier/50, camera.y-(canvas.width+50000)/SizeMultiplier/50, SizeMultiplier, 0, textsize);
 
+    
+    
+    switch (mainGame.gameState)  {
+        case GAME_STATE_MENU: {
+        let menuButtonParams={
+            width: 900/SizeMultiplier,
+            height: 200/SizeMultiplier,
+            color: "cyan",
+            color2: "blue",
+            color3: "navy",
+            colorUnactive: "gray",
+            font: 'bold ' + canvas.width/SizeMultiplier/50 + 'px Arial',
+            fontUnactive: 'bold ' + canvas.width/SizeMultiplier/50 + 'px Arial',
+            fontcolor: 'white',
+            fontcolor2: 'white',
+            fontcolor3: 'cyan',
+            fontColorUnactive: "black"
+        }
+        if (mainGame.started && escapeKey.wentDown) {
+            mainGame.gameState=GAME_STATE_PLAY;
+        }
+        if (drawMenuButton("Войти в игру", 0, 0, menuButtonParams, !mainGame.started, "Продолжить игру", true)) {
+            mainGame.gameState=GAME_STATE_PLAY;
+            mainGame.started=true;
+        }
+        if (drawMenuButton("Включить тестовый режим", 0, canvas.height/SizeMultiplier/8, menuButtonParams, !drawTestMode, "Выключить тестовый режим", true)) {
+            drawTestMode=!drawTestMode;
+        }
+        
+        } break;
+        case GAME_STATE_PLAY: {
+        if (escapeKey.wentDown) {
+            mainGame.gameState=GAME_STATE_MENU
+        }
+        priblijeniy_otdaleniy();
+        mouse.worldX = (mouse.x - canvas.width /2  )/SizeMultiplier  + camera.x;
+        mouse.worldY = (mouse.y - canvas.height / 2)/SizeMultiplier  + camera.y;
+        
+        drawRect(camera.x, camera.y, canvas.width/SizeMultiplier, canvas.height/SizeMultiplier, 0, 'grey');
+        
+        if (drawTestMode) {
+            drawCornerText("Zoom = ",SizeMultiplier,0);
+        }
 
-    for (let gameObjectsIndex = 0; gameObjectsIndex < gameObjects.length; gameObjectsIndex++) {
-        let gameObject = gameObjects[gameObjectsIndex];
-        if (gameObject.exists) {
-            updateGameObject(gameObject, gameObjectsIndex);
+        let grassWidth = canvas.width;
+        let grassHeight = canvas.height;
+
+        let minX = Math.floor((camera.x-canvas.width/2/SizeMultiplier)/ grassWidth);
+        let minY = Math.floor((camera.y-canvas.height/2/SizeMultiplier)/ grassHeight);
+        let maxX = Math.ceil((camera.x+canvas.width/2/SizeMultiplier) / grassWidth);
+        let maxY = Math.ceil((camera.y+canvas.height/2/SizeMultiplier) / grassHeight);
+        for (let gameObjectsIndex = 0; gameObjectsIndex < gameObjects.length; gameObjectsIndex++) {
+            let gameObject = gameObjects[gameObjectsIndex];
+            if (gameObject.exists) {
+                updateGameObject(gameObject, gameObjectsIndex);
+            }
+            
+        }
+
+        updateTimers();
         }
     }
-
-    updateTimers();
+    clearMouse();
     clearKeys();
-    ctx.restore();
     requestAnimationFrame(loop);
 
+    
 }
 
 //запрос обновления кадров
