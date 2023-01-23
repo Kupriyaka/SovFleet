@@ -13,13 +13,13 @@ let mainGame={
 
 let drawTestMode = false;
 
-const GAME_STATE_MENU = 0;
+const GAME_STATE_MAIN_MENU = 0;
 const GAME_STATE_PLAY = 1;
 
 const GAME_OBJECT_PLAYER = 0;
 const GAME_OBJECT_ENEMY = 1;
 const GAME_OBJECT_BULLET = 2;
-const GAME_OBJECT_OBSTACLE = 3;
+const GAME_OBJECT_HEAVY_OBSTACLE = 3;
 const GAME_OBJECT_PRESSABLE = 4;
 
 const BUTTON_PRESSED = 1;
@@ -95,7 +95,7 @@ function drawMenuButton(label, x, y, menuButtonSize, condition, alternativeChose
     }
 }
 
-function IsPolygonsIntersecting(pointsInput1, pointsInput2, pos1, pos2, angle1, angle2) {
+function ArePolygonsIntersecting(pointsInput1, pointsInput2, pos1, pos2, angle1, angle2) {
 
     //получение области столкновения
 
@@ -193,43 +193,173 @@ function drawRect(x, y, width, height, angle, color) {
 }
 
 
+class GameObject {
 
-function addGameObject(type) {
-    let gameObject = {
-        type: type,
-        x: 400,
-        y: 100,
-        collidable: false,
-        speedX: 0,
-        speedY: 0,
-        angle: 0,
-        turretAngle: 0,
-        rotateSpeed: 0.2,
-        accel: 13,
-        height: 10,
-        width: 10,
-        color: "black",
-        tempcolor: "white",
-        collisionRadius: 7.5,
-        friction: 0.96,
-        exists: true,
-        main_sprite: null,
-        turret_sprite: null,
+    x = 400;
+    y = 100;
+    angle = 0;
+    height = 10;
+    width = 10;
+    color = "black";
 
-        //entity
-        cooldown: addtimer(),
+    main_sprite = null;
 
-        //bullet
-        lifetime: addtimer(),
-        shooter: 0,
+    collidable = false;
+    moving = true;
 
-        //enemy
-        aiState: AI_STATE_IDLE,
-        aiTimer: addtimer(),
+    exists = true;
+    
+    constructor(type, x, y) {
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        switch (type)  {
+            case GAME_OBJECT_PLAYER: 
+            {
+                //не по умолчанию
+                this.hp = 3;
+                this.turretAngle = 0;
+                this.rotateSpeed = 0;
+                this.rotateAccel = 0.01;
+                this.friction = 0.96;
+                this.speedX = 0;
+                this.speedY = 0;
+                this.accel = 13;
+                this.turret_sprite = null;
+                this.tempcolor = "white";
+                //entity
+                this.cooldown = addtimer();
 
+                //по умолчанию
+                this.speedX = 0;
+                this.speedY = 0;
+                this.angle = 0;
+                this.moving = true;
+                this.collidable = true;
+
+                this.turretAngle = 0;
+                this.turretWidth = 200;
+                this.turretHeight = 20;
+                this.turretRadius = 80;
+                this.turretRotateSpeed = 0.07747;
+
+                this.rotateSpeed = 0.01747;
+                this.accel = 2;
+                this.height = 173;
+                this.width = 330;
+                this.color = "green";
+                this.friction = 0.92;
+                this.collisionRadius = 160
+
+                this.main_sprite = imgT72body;
+                this.turret_sprite = imgT72turret;
+
+            } 
+            break;
+            case GAME_OBJECT_ENEMY: 
+            {
+                this.hp = 3;
+                this.turretAngle = 0;
+                this.rotateSpeed = 0;
+                this.rotateAccel = 0.01;
+                this.friction = 0.96;
+                this.accel = 13;
+                this.speedX = 0;
+                this.speedY = 0;
+                this.turret_sprite = null;
+                this.tempcolor = "white";
+                this.cooldown = addtimer();
+                //enemy
+                this.aiState = AI_STATE_IDLE;
+                this.aiTimer = addtimer();
+
+                this.speedX = 0;
+                this.speedY = 0;
+                this.angle = 0;
+                this.moving = true;
+                this.collidable = true;
+
+                this.turretAngle = 0;
+                this.turretWidth = 200;
+                this.turretHeight = 20;
+                this.turretRadius = 75;
+                this.turretRotateSpeed = 0.01747;
+
+                this.main_sprite = imgT72body;
+                this.turret_sprite = imgT72turret;
+
+                this.rotateSpeed = 0.00747;
+                this.accel = 2;
+                this.height = 173;
+                this.width = 330;
+                this.color = "white";
+                this.friction = 0.92
+                this.collisionRadius = 160
+
+                this.cooldown = 0;
+                this.cooldownConst = 35;
+            }
+            break;
+            case GAME_OBJECT_BULLET: 
+            {
+                this.damage = 2;
+                this.moving = true;
+                this.collidable = false;
+
+                this.rotateSpeed = 0;
+                this.rotateAccel = 0.01;
+                this.accel = 13;
+                this.speedX = 0;
+                this.speedY = 0;
+                this.friction = 0.96;
+                this.tempcolor = "white";
+                this.lifetime = addtimer();
+                this.shooter = 0;
+            }
+            break;
+            case GAME_OBJECT_HEAVY_OBSTACLE: 
+            {
+                this.angle = 0;
+                this.moving = false;
+                this.collidable = true;
+                this.main_sprite = imgSmallHouse;
+                this.tempcolor = "white";
+            }
+            break;
+            case GAME_OBJECT_PRESSABLE: 
+            {
+                
+            }
+        }
     }
 
+    setEntityParams(width, height, main_sprite, doesHaveTurret, turret_sprite, hp) {
+        this.width=width;
+        this.height=height;
+        this.main_sprite = main_sprite;
+        if (doesHaveTurret) 
+        {
+            this.turret_sprite = turret_sprite;
+        }
+        this.hp=hp;
+    }
 
+    setBulletParams(damage) {
+        this.damage=damage
+        
+    }
+
+    setObstacleParams(width, height, main_sprite, angle) {
+        this.width=width;
+        this.height=height;
+        this.main_sprite = main_sprite;
+        this.angle = angle;
+    }
+
+}
+
+function addGameObject(x, y, type) {
+    let gameObject = new GameObject(type, x, y);
 
     let freeIndex = gameObjects.length;
 
@@ -241,8 +371,6 @@ function addGameObject(type) {
         }
     }
 
-
-
     gameObjects[freeIndex] = gameObject;
     return gameObject;
 }
@@ -251,106 +379,28 @@ function removeGameObject(gameObject) {
     gameObject.exists = false
 }
 
-function makePlayer() {
-let player = addGameObject(GAME_OBJECT_PLAYER)
-player.x = 100;
-player.y = 100;
-player.speedX = 0;
-player.speedY = 0;
-player.angle = 0;
-player.collidable = true;
-
-player.turretAngle = 0;
-player.turretWidth = 200;
-player.turretHeight = 20;
-player.turretRadius = 80;
-player.turretRotateSpeed = 0.07747;
-
-player.rotateSpeed = 0.01747;
-player.accel = 2;
-player.height = 173;
-player.width = 330;
-player.color = "green";
-player.friction = 0.92;
-player.collisionRadius = 160
-
-player.main_sprite = imgT72body;
-player.turret_sprite = imgT72turret;
+function makePlayer(x, y, width, height, main_sprite, doesHaveTurret, turret_sprite, hp) {
+    let player = addGameObject(x, y, GAME_OBJECT_PLAYER)
+    player.setEntityParams(width, height, main_sprite, doesHaveTurret, turret_sprite, hp)
 }
 
-function makemenu() {
-    let bChangeMode = addGameObject(GAME_OBJECT_PRESSABLE)
-    bChangeMode.x = 100;
-    bChangeMode.y = 100;
-    bChangeMode.angle = 0;
-    bChangeMode.height = 173;
-    bChangeMode.width = 330;
-    bChangeMode.color = "green";
+function makeEnemy(x, y, width, height, main_sprite, doesHaveTurret, turret_sprite, hp) {
+    let enemy = addGameObject(x, y, GAME_OBJECT_ENEMY)
+    enemy.setEntityParams(width, height, main_sprite, doesHaveTurret, turret_sprite, hp)
 }
 
-function makeEnemy1() {
-let enemy1 = addGameObject(GAME_OBJECT_ENEMY)
-enemy1.x = 500;
-enemy1.y = 400;
-enemy1.speedX = 0;
-enemy1.speedY = 0;
-enemy1.angle = 0;
-enemy1.collidable = true;
-
-enemy1.turretAngle = 0;
-enemy1.turretWidth = 200;
-enemy1.turretHeight = 20;
-enemy1.turretRadius = 75;
-enemy1.turretRotateSpeed = 0.01747;
-
-enemy1.main_sprite = imgT72body;
-enemy1.turret_sprite = imgT72turret;
-
-enemy1.rotateSpeed = 0.00747;
-enemy1.accel = 2;
-enemy1.height = 173;
-enemy1.width = 330;
-enemy1.color = "white";
-enemy1.friction = 0.92
-enemy1.collisionRadius = 160
-
-enemy1.cooldown = 0;
-enemy1.cooldownConst = 35;
+function makeHeavyObstacle(x, y, width, height, main_sprite, angle) {
+    let obstacle = addGameObject(x, y, GAME_OBJECT_HEAVY_OBSTACLE)
+    obstacle.setObstacleParams(width, height, main_sprite, angle)
 }
 
-function makeEnemy2() {
-let enemy2 = addGameObject(GAME_OBJECT_ENEMY)
-enemy2.x = 1500;
-enemy2.y = 1400;
-enemy2.speedX = 0;
-enemy2.speedY = 0;
-enemy2.angle = 4;
-enemy2.collidable = true;
 
-enemy2.main_sprite = imgT72body;
-enemy2.turret_sprite = imgT72turret;
+makeEnemy(100, 200, 330, 173, imgT72body, true, imgT72turret, 3);
+makeEnemy(600, 800, 330, 173, imgT72body, true, imgT72turret, 3);
 
-enemy2.turretAngle = 0;
-enemy2.turretWidth = 200;
-enemy2.turretHeight = 20;
-enemy2.turretRadius = 75;
-enemy2.turretRotateSpeed = 0.01747;
+makePlayer(400, 100, 330, 173, imgT72body, true, imgT72turret, 3);
 
-enemy2.rotateSpeed = 0.00747;
-enemy2.accel = 2;
-enemy2.height = 173;
-enemy2.width = 330;
-enemy2.color = "magenta";
-enemy2.friction = 0.92
-enemy2.collisionRadius = 160
-
-enemy2.cooldown = 0;
-enemy2.cooldownConst = 35;
-}
-
-makeEnemy1();
-//makeEnemy2();
-makePlayer();
+makeHeavyObstacle(500, 600, 600, 400, imgSmallHouse, 0);
 
 const friction = 0.92; //ТРЕНИЕ
 
@@ -449,12 +499,13 @@ function rotateTurret(startX, startY, startAngle, targetPointX, targetPointY, ro
 }
 
 function bulletSpawn(gameObject, lifetime = 300, mainspeed = 150) {
-    let bullet = addGameObject(GAME_OBJECT_BULLET)
+    let turretAddition = rotateVector(new V2(gameObject.turretWidth, 0), gameObject.turretAngle);
+    let spawningBulletX = gameObject.x + turretAddition.x * 1.5;
+    let spawningBulletY = gameObject.y + turretAddition.y * 1.5;
+    let bullet = addGameObject(spawningBulletX, spawningBulletY, GAME_OBJECT_BULLET)
     bullet.width = 255;
     bullet.height = 55;
-    let turretAddition = rotateVector(new V2(gameObject.turretWidth, 0), gameObject.turretAngle);
-    bullet.x = gameObject.x + turretAddition.x * 1.5;
-    bullet.y = gameObject.y + turretAddition.y * 1.5;
+    
     bullet.angle = gameObject.turretAngle;
     bullet.friction = 0.9975;
     bullet.accel = 0.5;
@@ -544,11 +595,13 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
 
         if (rightKey.isDown) {
+          
+            
             if (!downKey.isDown) {
-                gameObject.angle += gameObject.rotateSpeed;
+                gameObject.rotateSpeed += gameObject.rotateAccel;
             }
             else {
-                gameObject.angle -= gameObject.rotateSpeed;
+                gameObject.rotateSpeed -= gameObject.rotateAccel;
             }
         };
 
@@ -556,10 +609,10 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
         if (leftKey.isDown) {
             if (!downKey.isDown) {
-                gameObject.angle -= gameObject.rotateSpeed;
+                gameObject.rotateSpeed -= gameObject.rotateAccel;
             }
             else {
-                gameObject.angle += gameObject.rotateSpeed;
+                gameObject.rotateSpeed += gameObject.rotateAccel;
             }
         };
 
@@ -630,11 +683,11 @@ function updateGameObject(gameObject, gameObjectsIndex) {
             } break;
 
             case AI_STATE_ROTATE_LEFT: {
-                gameObject.angle -= gameObject.rotateSpeed;
+                gameObject.rotateSpeed -= gameObject.rotateAccel;
             } break;
 
             case AI_STATE_ROTATE_RIGHT: {
-                gameObject.angle += gameObject.rotateSpeed;
+                gameObject.rotateSpeed += gameObject.rotateAccel;
             } break;
 
             case AI_STATE_TURRET_ROTATE_LEFT: {
@@ -691,23 +744,10 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
         for (let gameObjectIndex = 0; gameObjectIndex < gameObjects.length; gameObjectIndex++) {
             let other = gameObjects[gameObjectIndex]
-            if (other.exists) {
-                if (other.type === GAME_OBJECT_ENEMY && gameObject.shooter === GAME_OBJECT_PLAYER || 
-                    other.type === GAME_OBJECT_PLAYER && gameObject.shooter=== GAME_OBJECT_ENEMY)  {
-                    // COLLISION CHECK
-                    const radiusSum = gameObject.collisionRadius + other.collisionRadius;
-                    const a = other.x - gameObject.x;
-                    const b = other.y - gameObject.y;
-                    const dist = Math.sqrt(a * a + b * b);
-                    if (dist < radiusSum) {
-                        other.exists = false;
-                        removeGameObject(gameObject);
-                    }
-                }
-                if (timers[gameObject.lifetime] <= 0) {
+                if (timers[gameObject.lifetime] <= 0) 
+                {
                     removeGameObject(gameObject)
                 }
-            }
         }
 
     }
@@ -715,18 +755,21 @@ function updateGameObject(gameObject, gameObjectsIndex) {
     let turretVector = rotateVector(new V2(gameObject.turretWidth / 2, 0), gameObject.turretAngle);
 
 
-
+    gameObject.rotateSpeed *= gameObject.friction*gameObject.friction;
     gameObject.speedX *= gameObject.friction;
     gameObject.speedY *= gameObject.friction;
 
     //COLLISION CHECK
     for (let gameObjectIndex = 0; gameObjectIndex < gameObjects.length; gameObjectIndex++) {
         let other = gameObjects[gameObjectIndex];
+        if (gameObjectIndex===3) {
+            let foo = 0;
+        }
         if (other.exists) {
-            if (other.collidable && gameObject.collidable && gameObjectsIndex!==gameObjectIndex) {
+            if (other.collidable && gameObject.moving && gameObjectsIndex!==gameObjectIndex) {
                 let pos = {
-                    x: gameObject.x,
-                    y: gameObject.y
+                    x: gameObject.x+gameObject.speedX,
+                    y: gameObject.y+gameObject.speedY
                 }
                 let otherPos = {
                     x: other.x,
@@ -739,6 +782,7 @@ function updateGameObject(gameObject, gameObjectsIndex) {
 
                 let points1 = [];
                 {
+                    
                     //заполняем точками точки толкача
                     let xo=gameObject.width/2;
                     let yo=gameObject.height/2;
@@ -771,10 +815,26 @@ function updateGameObject(gameObject, gameObjectsIndex) {
                     addPoint(points2, xo, yo);
                 }
                 
-                
-                if (IsPolygonsIntersecting(points1, points2, pos, otherPos, gameObject.angle, other.angle))
+                let foo =5;
+
+                if (ArePolygonsIntersecting(points1, points2, pos, otherPos, gameObject.angle+gameObject.rotateSpeed, other.angle))
                 {
+                    if (gameObject.type === GAME_OBJECT_BULLET) {
+                        if (other.type === GAME_OBJECT_ENEMY && gameObject.shooter === GAME_OBJECT_PLAYER || 
+                        other.type === GAME_OBJECT_PLAYER && gameObject.shooter === GAME_OBJECT_ENEMY)
+                        {
+                            other.exists = false;
+                            removeGameObject(gameObject);
+                        }
+                    }
                     gameObject.tempcolor='red';
+                    gameObject.x-=gameObject.speedX;
+                    gameObject.y-=gameObject.speedY;
+                    gameObject.speedX=-gameObject.speedX;
+                    gameObject.speedY=-gameObject.speedY;
+                    gameObject.angle-=gameObject.rotateSpeed;
+                    gameObject.rotateSpeed=-gameObject.rotateSpeed;
+                    
                 }
                 else
                 {
@@ -849,8 +909,11 @@ function updateGameObject(gameObject, gameObjectsIndex) {
     drawText(gameObject.x+100, gameObject.y-100, "y="+Math.round(gameObject.y), 0, textsize, "left", "black")
     }
 
+    if (gameObject.moving) {
+    gameObject.angle+=gameObject.rotateSpeed;
     gameObject.x += gameObject.speedX;
     gameObject.y += gameObject.speedY;
+    }
 }
 
 function loop() {
@@ -858,70 +921,80 @@ function loop() {
     
     
 
-    //ctx.drawImage(imgGrass, - imgGrass.width / 2 + camera.width / 2, - imgGrass.height / 2 + camera.height / 2)
+    //
 
     //счётчик приближения
 
     
     
     switch (mainGame.gameState)  {
-        case GAME_STATE_MENU: {
-        let menuButtonParams={
-            width: 900/SizeMultiplier,
-            height: 200/SizeMultiplier,
-            color: "cyan",
-            color2: "blue",
-            color3: "navy",
-            colorUnactive: "gray",
-            font: 'bold ' + canvas.width/SizeMultiplier/50 + 'px Arial',
-            fontUnactive: 'bold ' + canvas.width/SizeMultiplier/50 + 'px Arial',
-            fontcolor: 'white',
-            fontcolor2: 'white',
-            fontcolor3: 'cyan',
-            fontColorUnactive: "black"
-        }
-        if (mainGame.started && escapeKey.wentDown) {
-            mainGame.gameState=GAME_STATE_PLAY;
-        }
-        if (drawMenuButton("Войти в игру", 0, 0, menuButtonParams, !mainGame.started, "Продолжить игру", true)) {
-            mainGame.gameState=GAME_STATE_PLAY;
-            mainGame.started=true;
-        }
-        if (drawMenuButton("Включить тестовый режим", 0, canvas.height/SizeMultiplier/8, menuButtonParams, !drawTestMode, "Выключить тестовый режим", true)) {
-            drawTestMode=!drawTestMode;
-        }
-        
-        } break;
-        case GAME_STATE_PLAY: {
-        if (escapeKey.wentDown) {
-            mainGame.gameState=GAME_STATE_MENU
-        }
-        priblijeniy_otdaleniy();
-        mouse.worldX = (mouse.x - canvas.width /2  )/SizeMultiplier  + camera.x;
-        mouse.worldY = (mouse.y - canvas.height / 2)/SizeMultiplier  + camera.y;
-        
-        drawRect(camera.x, camera.y, canvas.width/SizeMultiplier, canvas.height/SizeMultiplier, 0, 'grey');
-        
-        if (drawTestMode) {
-            drawCornerText("Zoom = ",SizeMultiplier,0);
-        }
-
-        let grassWidth = canvas.width;
-        let grassHeight = canvas.height;
-
-        let minX = Math.floor((camera.x-canvas.width/2/SizeMultiplier)/ grassWidth);
-        let minY = Math.floor((camera.y-canvas.height/2/SizeMultiplier)/ grassHeight);
-        let maxX = Math.ceil((camera.x+canvas.width/2/SizeMultiplier) / grassWidth);
-        let maxY = Math.ceil((camera.y+canvas.height/2/SizeMultiplier) / grassHeight);
-        for (let gameObjectsIndex = 0; gameObjectsIndex < gameObjects.length; gameObjectsIndex++) {
-            let gameObject = gameObjects[gameObjectsIndex];
-            if (gameObject.exists) {
-                updateGameObject(gameObject, gameObjectsIndex);
+        case GAME_STATE_MAIN_MENU: {
+            let menuButtonParams={
+                width: 900/SizeMultiplier,
+                height: 200/SizeMultiplier,
+                color: "cyan",
+                color2: "blue",
+                color3: "navy",
+                colorUnactive: "gray",
+                font: 'bold ' + canvas.width/SizeMultiplier/50 + 'px Arial',
+                fontUnactive: 'bold ' + canvas.width/SizeMultiplier/50 + 'px Arial',
+                fontcolor: 'white',
+                fontcolor2: 'white',
+                fontcolor3: 'cyan',
+                fontColorUnactive: "black"
             }
-            
-        }
+            if (mainGame.started && escapeKey.wentDown) 
+            {
+                mainGame.gameState=GAME_STATE_PLAY;
+            }
+            if (drawMenuButton("Войти в игру", 0, 0, menuButtonParams, !mainGame.started, "Продолжить игру", true)) 
+            {
+                mainGame.gameState=GAME_STATE_PLAY;
+                mainGame.started=true;
+            }
+            if (drawMenuButton("Включить тестовый режим", 0, canvas.height/SizeMultiplier/8, menuButtonParams, !drawTestMode, "Выключить тестовый режим", true)) 
+            {
+                drawTestMode=!drawTestMode;
+            }
+        } 
+        break;
+        case GAME_STATE_PLAY: {
+            if (escapeKey.wentDown) 
+            {
+                mainGame.gameState=GAME_STATE_MAIN_MENU
+            }
 
-        updateTimers();
+            priblijeniy_otdaleniy();
+            mouse.worldX = (mouse.x - canvas.width /2  )/SizeMultiplier  + camera.x;
+            mouse.worldY = (mouse.y - canvas.height / 2)/SizeMultiplier  + camera.y;
+            
+            drawRect(camera.x, camera.y, canvas.width/SizeMultiplier, canvas.height/SizeMultiplier, 0, 'grey');
+            
+            if (drawTestMode) 
+            {
+                drawCornerText("Zoom = ",SizeMultiplier,0);
+            }
+
+            /*
+            let grassWidth = canvas.width;
+            let grassHeight = canvas.height;
+            ctx.drawImage(imgGrass, - imgGrass.width / 2 + camera.width / 2, - imgGrass.height / 2 + camera.height / 2)
+            */
+            /*
+            let minX = Math.floor((camera.x-canvas.width/2/SizeMultiplier)/ grassWidth);
+            let minY = Math.floor((camera.y-canvas.height/2/SizeMultiplier)/ grassHeight);
+            let maxX = Math.ceil((camera.x+canvas.width/2/SizeMultiplier) / grassWidth);
+            let maxY = Math.ceil((camera.y+canvas.height/2/SizeMultiplier) / grassHeight);
+            */
+            for (let gameObjectsIndex = 0; gameObjectsIndex < gameObjects.length; gameObjectsIndex++) {
+                let gameObject = gameObjects[gameObjectsIndex];
+                if (gameObject.exists) {
+                    updateGameObject(gameObject, gameObjectsIndex);
+                }
+                
+            }
+
+            updateTimers();
         }
     }
     clearMouse();

@@ -7,6 +7,7 @@ function loadImage(src) {
 let imgGrass = loadImage('./sprites/grass.jpg');
 let imgT72body = loadImage('./sprites/body_t72.png');
 let imgT72turret = loadImage('./sprites/turret_t72.png');
+let imgSmallHouse = loadImage('./sprites/house.jpg');
 
 let sound_mission1 = new Audio('./tracks/Siege_of_Kharkov.mp3');
 sound_mission1.volume = 0.5;
