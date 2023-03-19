@@ -21,6 +21,7 @@ const GAME_OBJECT_ENEMY = 1;
 const GAME_OBJECT_BULLET = 2;
 const GAME_OBJECT_HEAVY_OBSTACLE = 3;
 const GAME_OBJECT_PRESSABLE = 4;
+const bulletMainLifetime = 300;
 
 const BUTTON_PRESSED = 1;
 const BUTTON_RELEASED = 2;
@@ -36,6 +37,32 @@ const AI_STATE_ROTATE_LEFT = 4;
 const AI_STATE_ROTATE_RIGHT = 5;
 const AI_STATE_TURRET_ROTATE_LEFT = 6;
 const AI_STATE_TURRET_ROTATE_RIGHT = 7;
+
+let globalLoadedSounds = {}
+function loadSound(src) {
+    let sound = new Audio();
+    sound.src = src;
+    globalLoadedSounds[src] = sound
+    return sound
+}
+
+function playSound(sound, overlap) {
+    if (overlap) {
+        const newSound = loadSound(sound.src);
+        newSound.play();
+    } else {
+        sound.play();
+    }
+    
+}
+
+const sndTankEngine = loadSound('./soundLib/sounds/tankEngine.mp3');
+const sndTankMoving = loadSound('./soundLib/sounds/tankMoving.mp3');
+const sndTankShot = loadSound('./soundLib/sounds/oneTankShot.mp3');
+const sndShellHitInside = loadSound('./soundLib/sounds/shellHitArmorInside.mp3');
+const sndShellHitOutside = loadSound('./soundLib/sounds/shellHit.mp3');
+
+
 
 let timers = [];
 function addtimer() {
@@ -498,7 +525,10 @@ function rotateTurret(startX, startY, startAngle, targetPointX, targetPointY, ro
     return rotateAngle;*/
 }
 
-function bulletSpawn(gameObject, lifetime = 300, mainspeed = 150) {
+function bulletSpawn(gameObject, lifetime = bulletMainLifetime, mainspeed = 150) {
+
+    playSound(sndTankShot, true);
+
     let turretAddition = rotateVector(new V2(gameObject.turretWidth, 0), gameObject.turretAngle);
     let spawningBulletX = gameObject.x + turretAddition.x * 1.5;
     let spawningBulletY = gameObject.y + turretAddition.y * 1.5;
@@ -617,8 +647,9 @@ function updateGameObject(gameObject, gameObjectsIndex) {
         };
 
         if (upKey.isDown) {
-
-            let speedVector = rotateVector(new V2(gameObject.accel, 0), gameObject.angle)
+            sndTankEngine.volume=0.5;
+            playSound(sndTankEngine);
+            let speedVector = rotateVector(new V2(gameObject.accel, 0), gameObject.angle);
             gameObject.speedX += speedVector.x;
             gameObject.speedY += speedVector.y;
         };
@@ -823,6 +854,13 @@ function updateGameObject(gameObject, gameObjectsIndex) {
                         if (other.type === GAME_OBJECT_ENEMY && gameObject.shooter === GAME_OBJECT_PLAYER || 
                         other.type === GAME_OBJECT_PLAYER && gameObject.shooter === GAME_OBJECT_ENEMY)
                         {
+                            if (other.type === GAME_OBJECT_PLAYER) {
+                                playSound(sndShellHitInside);
+                            }
+                            else {
+                                sndShellHitOutside.volume=gameObject.lifetime/bulletMainLifetime;
+                                playSound(sndShellHitOutside, true);
+                            }
                             other.exists = false;
                             removeGameObject(gameObject);
                         }
